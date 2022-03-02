@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Payment</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="">
+    {{ data|json_script:'context' }}
+    <div class="container mx-auto">
+      <div class="border h-screen flex">
+        <div class="m-auto">
+          <form
+            method="post"
+            action=""
+            id="form"
+            class="grid grid-cols-2 gap-2"
+          >
+            {% csrf_token %}
+            <input
+              type="hidden"
+              id="myVar"
+              name="variable"
+              value="{{ data.data }}"
+            />
+            <input type="text" id="f_name" class="w-full border rounded" />
+            <input type="text" id="l_name" class="w-full border rounded" />
+            <button
+              type="button"
+              id="submit-btn"
+              class="w-full p-2 bg-blue-400 rounded"
+            >
+              Submit
+            </button>
+            <button
+              type="submit"
+              id="pay-btn"
+              class="w-full p-2 bg-blue-400 rounded"
+            >
+              Pay
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </body>
+  <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+    integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  ></script>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <script>
+    var Value = JSON.parse(document.getElementById("context").textContent);
+    let payment_status;
+    var options = {
+      key: "rzp_test_iEAwNQ3DltOIHx", // Enter the Key ID generated from the Dashboard
+      amount: "50000", // Amount is in currency subunits. Default currency is INR. Hence, 50000 refers to 50000 paise
+      currency: "INR",
+      name: "Acme Corp",
+      description: "Test Transaction",
+      image: "https://example.com/your_logo",
+      order_id: Value.razorpay_order_id, //This is a sample Order ID. Pass the `id` obtained in the response of Step 1
+      handler: function (response) {
+        payment_status = true;
+        alert(response.razorpay_payment_id);
+        alert(response.razorpay_order_id);
+        alert(response.razorpay_signature);
+      },
+      prefill: {
+        name: "Gaurav Kumar",
+        email: "gaurav.kumar@example.com",
+        contact: "9999999999",
+      },
+      notes: {
+        address: "Razorpay Corporate Office",
+      },
+      theme: {
+        color: "#3399cc",
+      },
+    };
+    var rzp1 = new Razorpay(options);
+
+    console.log(rzp1);
+    rzp1.on("payment.failed", function (response) {
+      console.log("yes");
+      payment_status = false;
+      alert(response.error.code);
+      alert(response.error.description);
+      alert(response.error.source);
+      alert(response.error.step);
+      alert(response.error.reason);
+      alert(response.error.metadata.order_id);
+      alert(response.error.metadata.payment_id);
+    });
+    document.getElementById("pay-btn").onclick = function (e) {
+      rzp1.open();
+      e.preventDefault();
+    };
+    document.getElementById("submit-btn").onclick = function (e) {
+      let first_name = $("#f_name").val();
+      let last_name = $("#l_name").val();
+
+      $.ajax({
+        url: "/", // the endpoint
+        type: "POST", // http method
+        data: {
+          first_name: first_name,
+          last_name: last_name,
+          payment_status: payment_status,
+        }, // data sent with the post request
+        // handle a successful response
+        success: function (json) {
+          //  handle success
+          $("#f_name").val("");
+          $("#l_name").val("");
+        },
+        // handle a non-successful response
+        error: function (xhr, errmsg, err) {
+          console.log(err);
+        },
+      });
+      console.log({ payment_status });
+    };
+  </script>
+</html>
